@@ -13,7 +13,6 @@ case class Circle(radius: Double) extends Shape{
 
   override def area: Double = math.Pi*radius*radius
 
-  override def equals(that: Any): Boolean = false
 }
 case class Rectangle(side1: Double, side2: Double) extends Shape with Rectangular{
   override def sides: Int = 4
@@ -21,8 +20,6 @@ case class Rectangle(side1: Double, side2: Double) extends Shape with Rectangula
   override def perimeter: Double = 2*(side1+side2)
 
   override def area: Double = side2*side1
-
-  override def equals(that: Any): Boolean = ???
 }
 case class Square(side: Double) extends Shape with Rectangular{
   override def sides: Int = 4
@@ -31,7 +28,6 @@ case class Square(side: Double) extends Shape with Rectangular{
 
   override def area: Double = side*side
 
-  override def equals(that: Any): Boolean = false
 }
 sealed trait Rectangular {
   this: Shape=>

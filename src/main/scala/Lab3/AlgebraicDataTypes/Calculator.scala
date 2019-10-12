@@ -1,11 +1,9 @@
-package Lab3.Shapes.AlgebraicDataTypes
+package Lab3.AlgebraicDataTypes
 
 sealed trait Calculator
-case class Success(result: Int) extends Calculator {
-  override def equals(that: Any): Boolean = false
-}
+case class SuccessCalculator(result: Int) extends Calculator
+
 case class Failure(result: String) extends Calculator{
-  override def equals(that: Any): Boolean = false
 }
 
 

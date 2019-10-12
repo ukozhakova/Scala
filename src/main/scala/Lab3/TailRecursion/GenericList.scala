@@ -20,10 +20,9 @@ sealed trait GenericList[A] {
 
 }
   case class GenericEnd[A]() extends GenericList[A]{
-    override def equals(that: Any): Boolean = false
   }
   case class GenericNode[A](head: A, tail: GenericList[A]) extends GenericList[A]{
-    override def equals(that: Any): Boolean = false
+
   }
 object GenList extends App{
   val genericList: GenericList[Int] = GenericNode(1, GenericNode(2, GenericNode(3, GenericEnd())))

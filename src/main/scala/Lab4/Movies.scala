@@ -55,7 +55,7 @@ object Movies extends App {
   //println(DirectorsWIthMoreThanNFilm(4))
 
 //Task2
-  def DirectorsWereBornBeforeThisYear(year:Int): Seq[Director]={
+  def directorsWereBornBeforeThisYear(year:Int): Seq[Director]={
     directors.filter(d=>d.yearOfBirth<year)
   }
   //println(DirectorsWereBornBeforeThisYear(1952))
@@ -87,6 +87,9 @@ def BeforeYearAndMoreThanN(year:Int, N:Int):Seq[Director]={
       }
     }
     filmNames
+
+    // TODO:
+    directors.flatMap(d => d.films).map(_.name)
   }
  // println(Cinephile())
 
@@ -104,6 +107,7 @@ def BeforeYearAndMoreThanN(year:Int, N:Int):Seq[Director]={
  // println(HighScoreTable())
 
   //Task9
+  // TODO: fold, foldLeft
   def avgScore(): Double={
     var Scores= directors.map(d=>d.films.map(f=>f.imdbRating)).flatten
     var sum: Double=0
