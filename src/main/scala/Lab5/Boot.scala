@@ -11,6 +11,7 @@ object Boot extends App{
   testBot ! TestBot.TestConflict
   testBot ! TestBot.TestNotFound
   testBot ! TestBot.TestUpdate
+  testBot ! TestBot.TestRead
   testBot ! TestBot.TestDelete
 
 

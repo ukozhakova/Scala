@@ -1,6 +1,7 @@
-package Lab5.actor
+package Lab6.actor
+
+import Lab6.model.{ErrorResponse, Movie, SuccessfulResponse}
 import akka.actor.{Actor, ActorLogging, Props}
-import Lab5.model.{ErrorResponse, SuccessfulResponse, Movie}
 
 // props
 // messages
@@ -37,35 +38,35 @@ class MovieManager extends Actor with ActorLogging {
       movies.get(movie.id) match {
         case Some(existingMovie) =>
           log.warning(s"Could not create a movie with ID: ${movie.id} because it already exists.")
-          sender() ! ErrorResponse(409, s"Movie with ID: ${movie.id} already exists.")
+          sender() ! Left(ErrorResponse(409, s"Movie with ID: ${movie.id} already exists."))
 
         case None =>
           movies = movies + (movie.id -> movie)
           log.info("Movie with ID: {} created.", movie.id)
-          sender() ! SuccessfulResponse(201, s"Movie with ID: ${movie.id} created.")
+          sender() ! Right(SuccessfulResponse(201, s"Movie with ID: ${movie.id} created."))
       }
 
     case ReadMovie(id) =>
       movies.get(id) match {
         case Some(existingMovie) =>
           log.info(s"Movie with ID: ${id} is:")
-          sender() ! existingMovie
+          sender() ! Right(existingMovie)
 
         case None =>
           log.warning("Movie with ID: {} does not exist.", id)
-          sender() ! ErrorResponse(404, s"Movie with ID: ${id} not found.")
+          sender() ! Left(ErrorResponse(404, s"Movie with ID: ${id} not found."))
       }
 
     case UpdateMovie(movie) =>
       movies.get(movie.id) match {
         case Some(existingMovie) =>
-          movies = movies + (movie.id->movie)
+          movies = movies- existingMovie.id+ (movie.id->movie)
           log.info(s"Movie with ID ${movie.id} updated. ")
-          sender() ! SuccessfulResponse(200, s"Movie with ID ${movie.id} updated successfully. ")
+          sender() ! Right(SuccessfulResponse(200, s"Movie with ID ${movie.id} updated successfully. "))
 
         case None =>
           log.warning("Movie with ID: {} can not be updated.", movie.id)
-          sender() ! ErrorResponse(404, s"Movie with ID: ${movie.id} does not exist.")
+          sender() ! Left(ErrorResponse(404, s"Movie with ID: ${movie.id} does not exist."))
       }
 
     case DeleteMovie(id) =>
@@ -73,10 +74,10 @@ class MovieManager extends Actor with ActorLogging {
         case Some(existingMovie) =>
           movies = movies - id
           log.info(s"Movie with ID ${id} deleted. ")
-          sender() ! SuccessfulResponse(204, s"Movie with ID ${id} deleted successfully. ")
+          sender() ! Right(SuccessfulResponse(204, s"Movie with ID ${id} deleted successfully. "))
         case None =>
           log.warning("Movie with ID: {} can not be deleted.", id)
-          sender() ! ErrorResponse(404, s"Movie with ID: ${id} does not exist.")
+          sender() ! Left(ErrorResponse(404, s"Movie with ID: ${id} does not exist."))
       }
   }
 

@@ -1,6 +1,7 @@
-package Lab5.actor
+package Lab6.actor
+
+import Lab6.model.{Director, ErrorResponse, Movie, SuccessfulResponse}
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import Lab5.model.{Director, ErrorResponse, Movie, SuccessfulResponse}
 
 object TestBot {
 
@@ -23,13 +24,13 @@ class TestBot(manager: ActorRef) extends Actor with ActorLogging {
   import TestBot._
 
   override def receive: Receive = {
-    case TestCreate =>
-      manager ! MovieManager.CreateMovie(Movie("1", "Joker", Director("dir-1", "Todd", "Philips"), 2019))
-
-    case TestConflict =>
+    /*case TestCreate =>
+     manager ! MovieManager.CreateMovie(Movie("1", "Joker", Director("dir-1", "Todd", Some("ToddPhil"), "Philips"), 2019))
+*/
+   /* case TestConflict =>
       manager ! MovieManager.CreateMovie(Movie("2", "Charlie's Angels", Director("dir-2", "Ivan", "Ivanov"), 2019))
       manager ! MovieManager.UpdateMovie(Movie("8", "Test Test", Director("dir-2", "Ivan", "Ivanov"), 2019))
-
+*/
     case TestRead =>
       manager ! MovieManager.ReadMovie("1")
 
@@ -37,9 +38,9 @@ class TestBot(manager: ActorRef) extends Actor with ActorLogging {
       manager ! MovieManager.ReadMovie("6")
       manager ! MovieManager.DeleteMovie("7")
 
-    case TestUpdate =>
+   /* case TestUpdate =>
       manager ! MovieManager.UpdateMovie(Movie("1", "K2", Director("dir-2", "nugu", "nugu"), 2019))
-
+*/
     case TestDelete =>
       manager ! MovieManager.DeleteMovie("2")
     case SuccessfulResponse(status, msg) =>
