@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
+
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.stream.{ActorMaterializer, Materializer}
@@ -13,7 +14,6 @@ import Lab6.model.{ErrorResponse, Movie, Response, SuccessfulResponse}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
-import StatusCodes._
 
 object Boot extends App with SprayJsonSerializer {
 
@@ -28,24 +28,27 @@ object Boot extends App with SprayJsonSerializer {
   val route =
     path("healthcheck") {
       get {
-        complete {
-          "OK"
-        }
+       complete(StatusCodes.Accepted ->"hello")
       }
-    } ~
+    }~
       pathPrefix("kbtu-cinema") {
         path("movie" / Segment) { movieId =>
           get {
-            complete {
-              (movieManager ? MovieManager.ReadMovie(movieId)).mapTo[Either[ErrorResponse, Movie]]
+            val res= (movieManager ? MovieManager.ReadMovie(movieId)).mapTo[Either[ErrorResponse, Movie]]
+            onSuccess(res) {
+              case Left(error) => complete(error.status, error)
+              case Right(movie) => complete(200, movie)
+
             }
           }
         } ~
           path("movie") {
             post {
               entity(as[Movie]) { movie =>
-                complete {
-                 (movieManager ? MovieManager.CreateMovie(movie)).mapTo[Either[ErrorResponse, SuccessfulResponse]]
+                val res = (movieManager ? MovieManager.CreateMovie(movie)).mapTo[Either[ErrorResponse, SuccessfulResponse]]
+                onSuccess(res) {
+                  case Left(error) =>complete(error.status, error)
+                  case Right(success) =>complete(201, success)
                 }
               }
             }
@@ -53,22 +56,25 @@ object Boot extends App with SprayJsonSerializer {
         path("movie"){
           put{
             entity(as[Movie]) { movie =>
-              complete{
-                (movieManager ? MovieManager.UpdateMovie(movie)).mapTo[Either[ErrorResponse, SuccessfulResponse]]
+              val res=  (movieManager ? MovieManager.UpdateMovie(movie)).mapTo[Either[ErrorResponse, SuccessfulResponse]]
+              onSuccess(res){
+                case Left(error) =>complete(error.status, error)
+                case Right(success) =>complete(success.status, success)
               }
-
             }
           }
         }~
         path("movie"/Segment){movieID =>
-          delete{
-            complete{
-              (movieManager ? MovieManager.DeleteMovie(movieID)).mapTo[Either[ErrorResponse, SuccessfulResponse]]
+          delete {
+              val res= (movieManager ? MovieManager.DeleteMovie(movieID)).mapTo[Either[ErrorResponse, SuccessfulResponse]]
+            onSuccess(res){
+              case Left(error) =>complete(error.status, error)
+              case Right(success) =>complete(success.status, success)
             }
           }
         }
       }
 
-  val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 8080)
+  val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 8000)
 
 }
