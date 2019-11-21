@@ -17,7 +17,7 @@ object Boot extends App {
   //    .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
   //    .build();
 
-  val credentials = new BasicAWSCredentials("AKIARTZMNRRGSIE6RKUA","QzgPck0gRJ5yB+fr13W4mRGOCpyezXgq88albzae")
+  val credentials = new BasicAWSCredentials("access-key","secret-key")
 
   val client = AmazonS3ClientBuilder.standard()
     .withCredentials(new AWSStaticCredentialsProvider(credentials))
@@ -25,7 +25,7 @@ object Boot extends App {
     .build();
 
 
-  val bucketName = "kbtu-healthcare"
+  val bucketName = "lab11-task2"
   val objectKey = "nice/file/abc.txt"
   val fileName = "./src/main/resources/s3/nice/file/abc.txt"
 
@@ -39,7 +39,7 @@ object Boot extends App {
 
 
   }
-  //createBucket()
+  createBucket()
   def getObject(objectKey: String) = {
     val fullObject = client.getObject(new GetObjectRequest(bucketName, objectKey));
 
