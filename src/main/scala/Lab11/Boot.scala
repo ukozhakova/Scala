@@ -1,97 +1,107 @@
+
 package Lab11
 
-import java.io.{BufferedReader, File, InputStreamReader}
-
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.pattern.ask
+import akka.stream.{ActorMaterializer, Materializer}
+import akka.http.scaladsl.server.Directives._
+import akka.util.Timeout
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
-import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.s3.AmazonS3ClientBuilder
-import com.amazonaws.services.s3.model.{GetObjectRequest, ListObjectsV2Request, ListObjectsV2Result, ObjectMetadata, PutObjectRequest}
-import collection.JavaConverters._
+import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import org.slf4j.LoggerFactory
+import Lab11.ManagerActor
+import Lab11.ManagerActor.{DownloadAllFiles, GetFile, UploadAllFiles, UploadFile}
+import Lab11.model.{ErrorResponse, PathModel, SuccessfulResponse}
+import akka.http.scaladsl.server.Route
+import scala.collection.JavaConverters._
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
-object Boot extends App {
 
-  val clientRegion = Regions.EU_CENTRAL_1
-  //  BasicAWSCredentials awsCreds = new BasicAWSCredentials("access_key_id", "secret_key_id");
-  //  AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-  //    .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-  //    .build();
+object Boot extends App with SprayJsonSerializer {
+  implicit val system: ActorSystem = ActorSystem("file-manager-system")
+  implicit val materializer: Materializer = ActorMaterializer()
 
-  val credentials = new BasicAWSCredentials("access-key","secret-key")
+  implicit val timeout: Timeout = Timeout(10.seconds)
 
-  val client = AmazonS3ClientBuilder.standard()
+  val log = LoggerFactory.getLogger(this.getClass)
+
+  val clientRegion: Regions = Regions.EU_CENTRAL_1
+
+  val credentials = new BasicAWSCredentials("access-key", "secret-key")
+
+  val client: AmazonS3 = AmazonS3ClientBuilder.standard()
     .withCredentials(new AWSStaticCredentialsProvider(credentials))
     .withRegion(clientRegion)
-    .build();
+    .build()
 
+  val bucketName = "lab11-test"
 
-  val bucketName = "lab11-task2"
-  val objectKey = "nice/file/abc.txt"
-  val fileName = "./src/main/resources/s3/nice/file/abc.txt"
+  val worker = system.actorOf(ManagerActor.props(client, bucketName))
 
-  def createBucket() = {
+  createBucket(client, bucketName)
 
-    if (!client.doesBucketExistV2(bucketName)) {
-      client.createBucket(bucketName)
-    }
-    val location = client.getBucketLocation(bucketName)
-    println(s"Bucket location: $location")
-
-
-  }
-  createBucket()
-  def getObject(objectKey: String) = {
-    val fullObject = client.getObject(new GetObjectRequest(bucketName, objectKey));
-
-    val objectStream = fullObject.getObjectContent
-
-    val reader = new BufferedReader(new InputStreamReader(objectStream));
-
-    var str: String = reader.readLine()
-    do {
-      println(str)
-      str = reader.readLine()
-    } while (str != null)
-  }
-  //getObject(objectKey)
-
-  def createObject(objectKey: String, filename: String) = {
-
-    // Upload a file as a new object with ContentType and title specified.
-    val request = new PutObjectRequest(bucketName, objectKey, new File(filename))
-
-    val metadata = new ObjectMetadata()
-
-    metadata.setContentType("plain/text")
-    metadata.addUserMetadata("user-type", "customer")
-
-    request.setMetadata(metadata)
-    client.putObject(request)
-  }
- //createObject(objectKey, fileName)
-
-  def listObjects() = {
-    val req = new ListObjectsV2Request().withBucketName(bucketName);
-    //    val result: ListObjectsV2Result
-
-    var flag = true
-
-    while (flag) {
-      val result = client.listObjectsV2(req)
-
-      result.getObjectSummaries().asScala.toList.foreach { objectSummary =>
-        printf(" - %s (size: %d)\n", objectSummary.getKey(), objectSummary.getSize());
+  val route: Route =
+    concat(
+      path("file") {
+        concat(
+          get {
+            parameters('filename.as[String]) { fileName =>
+              handle((worker ? GetFile(fileName)).mapTo[Either[ErrorResponse, SuccessfulResponse]])
+            }
+          },
+          post {
+            entity(as[PathModel]) { pathModel =>
+              handle((worker ? UploadFile(pathModel.path)).mapTo[Either[ErrorResponse, SuccessfulResponse]])
+            }
+          }
+        )
+      },
+      pathPrefix("task2") {
+        concat(
+          path("in") {
+            get {
+              complete {
+                worker ! DownloadAllFiles
+                "in completed"
+              }
+            }
+          },
+          path("out") {
+            get {
+              complete {
+                worker ! UploadAllFiles
+                "out completed"
+              }
+            }
+          }
+        )
       }
-      // If there are more than maxKeys keys in the bucket, get a continuation token
-      // and list the next objects.
-      val token = result.getNextContinuationToken()
-      System.out.println("Next Continuation Token: " + token);
-      req.setContinuationToken(token)
+    )
 
-      if (!result.isTruncated) {
-        flag = false
+  val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 8080)
+
+
+  def createBucket(s3client: AmazonS3, bucket: String): Unit = {
+    if (!s3client.doesBucketExistV2(bucket)) {
+      s3client.createBucket(bucket)
+      log.info(s"Bucket with name: $bucket created")
+    } else {
+      log.info(s"Bucket $bucket already exists")
+    }
+  }
+
+  def handle(output: Future[Either[ErrorResponse, SuccessfulResponse]]) = {
+    onSuccess(output) {
+      case Left(error) => {
+        complete(error.status, error)
+      }
+      case Right(successful) => {
+        complete(successful.status, successful)
       }
     }
   }
- //listObjects()
 }
