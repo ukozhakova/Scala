@@ -33,7 +33,7 @@ object Boot extends App with SprayJsonSerializer {
 
   val clientRegion: Regions = Regions.EU_CENTRAL_1
 
-  val credentials = new BasicAWSCredentials("access-key", "secret-key")
+  val credentials = new BasicAWSCredentials("AKIARTZMNRRGSIE6RKUA", "QzgPck0gRJ5yB+fr13W4mRGOCpyezXgq88albzae")
 
   val client: AmazonS3 = AmazonS3ClientBuilder.standard()
     .withCredentials(new AWSStaticCredentialsProvider(credentials))
@@ -89,7 +89,7 @@ object Boot extends App with SprayJsonSerializer {
                 val future = (worker ? PhotoActor.GetPhoto(photoName)).mapTo[Either[ErrorResponse, PhotoResponse]]
 
                 onSuccess(future) {
-                  case Left(error) => complete(error.status, error.message)
+                  case Left(error) => complete(error)
                   case Right(photo) => complete(photo.status, HttpEntity(ContentType(`image/jpeg`), photo.message))
                 }
               },

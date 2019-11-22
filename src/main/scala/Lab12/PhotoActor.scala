@@ -52,8 +52,9 @@ class PhotoActor(client: AmazonS3, bucketName: String) extends Actor with ActorL
         log.info(s"Status: 200. Successfully get ${fileName}")
         rootSender ! Right(PhotoResponse(200, photoInBytes))
       } else {
-        log.info(s"Status: 404. Failed to get ${fileName}. It doesn't exist")
-        rootSender ! Left(ErrorResponse(404, s"Failed to get ${fileName}. It doesn't exist"))
+        log.info(s"Status: 400. Image ${fileName}  doesn't exist")
+        rootSender ! Left(ErrorResponse(400, s"Image ${fileName}  doesn't exist"))
+
       }
 
       context.stop(self)
@@ -64,12 +65,11 @@ class PhotoActor(client: AmazonS3, bucketName: String) extends Actor with ActorL
 
       if (client.doesObjectExist(bucketName, objectKey)) {
         client.deleteObject(new DeleteObjectRequest(bucketName, objectKey))
-
-        rootSender ! Right(SuccessfulResponse(200, s"Successfully deleted  ${fileName} from AWS S3"))
         log.info("Successfully deleted {} from AWS S3", fileName)
+        rootSender ! Right(SuccessfulResponse(200, s"Successfully deleted  ${fileName} from AWS S3"))
       } else {
         log.info(s"Status: 404. Failed to delete photo ${fileName}. It doesn't exist")
-        rootSender ! Left(ErrorResponse(404, s"Failed to delete ${fileName} [DELETE]. It doest't exist"))
+        rootSender ! Left(ErrorResponse(404, s"Failed to delete ${fileName}. It doest't exist"))
       }
 
       context.stop(self)
